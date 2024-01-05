@@ -1,6 +1,60 @@
-## Taylor Series Linear Attention (wip)
+## Taylor Series Linear Attention
 
 Explorations into the Taylor Series Linear Attention proposed in the paper <a href="https://arxiv.org/abs/2312.04927">Zoology: Measuring and Improving Recall in Efficient Language Models</a>
+
+This repository will only offer non-causal self attention as well as cross attention. Autoregressive formulation requires a complicated CUDA kernel.
+
+## Appreciation
+
+- <a href="https://a16z.com/supporting-the-open-source-ai-community/">A16Z Open Source AI Grant Program</a> and <a href="https://huggingface.co/">🤗 Huggingface</a> for the generous sponsorships, as well as my other sponsors, for affording me the independence to open source current artificial intelligence research
+
+## Install
+
+```bash
+$ pip install taylor-series-lienar-attention
+```
+
+## Usage
+
+```python
+import torch
+from taylor_series_linear_attention import TaylorSeriesLinearAttn
+
+attn = TaylorSeriesLinearAttn(
+  dim = 512,
+  dim_head = 16,
+  heads = 16
+)
+
+x = torch.randn(1, 4096, 512)
+mask = torch.ones((1, 4096)).bool()
+
+out = attn(x, mask = mask)
+
+assert x.shape == out.shape
+```
+
+Cross attention
+
+```python
+import torch
+from taylor_series_linear_attention import TaylorSeriesLinearAttn
+
+attn = TaylorSeriesLinearAttn(
+  dim = 512,
+  dim_head = 16,
+  heads = 16
+)
+
+x = torch.randn(1, 1024, 512)
+
+context = torch.randn(1, 65536, 512)
+context_mask = torch.ones((1, 65536)).bool()
+
+out = attn(x, context = context, mask = context_mask)
+
+assert x.shape == out.shape
+```
 
 ## Citations
 
