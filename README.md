@@ -4,7 +4,7 @@ Explorations into the Taylor Series Linear Attention proposed in the paper <a hr
 
 This repository will only offer non-causal self attention as well as cross attention. Autoregressive formulation requires a complicated CUDA kernel.
 
-Be aware that in linear attention, the quadratic is pushed to the attention head dimension. With the taylor expansion, this becomes O(D^3)
+Be aware that in linear attention, the quadratic is pushed to the attention head dimension. With the taylor expansion, this becomes O(D^3), so more research needed.
 
 ## Appreciation
 
