@@ -46,11 +46,17 @@ class TaylorSeriesLinearAttn(Module):
         dim,
         *,
         dim_head = 16,
-        heads = 8
+        heads = 8,
+        one_headed_kv = False
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
         dim_inner = dim_head * heads
+
+        kv_heads = heads if not one_headed_kv else 1
+        dim_kv_inner = dim_head * (heads if not one_headed_kv else 1)
+
+        self.one_headed_kv = one_headed_kv
 
         self.to_q = nn.Sequential(
             nn.Linear(dim, dim_inner, bias = False),
@@ -58,8 +64,8 @@ class TaylorSeriesLinearAttn(Module):
         )
 
         self.to_kv = nn.Sequential(
-            nn.Linear(dim, dim_inner * 2, bias = False),
-            Rearrange('b n (kv h d) -> kv b h n d', kv = 2, h = heads)
+            nn.Linear(dim, dim_kv_inner * 2, bias = False),
+            Rearrange('b n (kv h d) -> kv b h n d', kv = 2, h = kv_heads)
         )
 
         self.to_out = nn.Sequential(
@@ -104,11 +110,17 @@ class TaylorSeriesLinearAttn(Module):
 
         # linear attention
 
-        kv = einsum('b h n d, b h n e -> b h d e', k, v)
+        if self.one_headed_kv:
+            k, v = map(lambda t: rearrange(t, 'b 1 n d -> b n d'), (k, v))
 
-        qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
+            kv = einsum('b n d, b n e -> b d e', k, v)
+            qk_inv = 1. / einsum('b h n d, b m d -> b h n', q, k).clamp(min = eps)
+            out = einsum('b h n d, b d e, b h n -> b h n e', q, kv, qk_inv)
 
-        out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
+        else:
+            kv = einsum('b h n d, b h n e -> b h d e', k, v)
+            qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
+            out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
 
         # combine heads
 
