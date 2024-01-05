@@ -78,3 +78,5 @@ assert x.shape == out.shape
   url     = {https://api.semanticscholar.org/CorpusID:252198880}
 }
 ```
+
+*The greatest shortcoming of the human race is man’s inability to understand the exponential function.* - Albert A. Bartlett
