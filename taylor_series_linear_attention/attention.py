@@ -71,8 +71,19 @@ class TaylorSeriesLinearAttn(Module):
         self,
         x,
         mask = None,
-        context = None
+        context = None,
+        eps = 1e-5
     ):
+        """
+        einops
+        b - batch
+        h - heads
+        d - query / key head dimension
+        e - value head dimension
+        n - source query sequence length
+        m - target key / value sequence length
+        """
+
         q = self.to_q(x)
         k, v = self.to_kv(default(context, x))
 
@@ -95,7 +106,9 @@ class TaylorSeriesLinearAttn(Module):
 
         kv = einsum('b h n d, b h n e -> b h d e', k, v)
 
-        out = einsum('b h n d, b h d e -> b h n e', q, kv)
+        qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
+
+        out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
 
         # combine heads
 
