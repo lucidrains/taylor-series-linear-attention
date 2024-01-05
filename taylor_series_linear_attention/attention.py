@@ -91,16 +91,16 @@ class TaylorSeriesLinearAttn(Module):
 
         q = q * self.scale
 
+        # 2nd taylor expansion for exp(qk)
+
+        q, k = map(second_taylor_expansion, (q, k))
+
         # masking
 
         if exists(mask):
             mask = rearrange(mask, 'b n -> b 1 n 1')
             k = k.masked_fill(~mask, 0.)
             v = v.masked_fill(~mask, 0.)
-
-        # 2nd taylor expansion for exp(qk)
-
-        q, k = map(second_taylor_expansion, (q, k))
 
         # linear attention
 
