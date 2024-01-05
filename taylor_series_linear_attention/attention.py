@@ -29,7 +29,7 @@ def second_taylor_expansion(x):
 
     x0 = x.new_ones((lead_dims,))
     x1 = x
-    x2 = einsum('... i, ... j -> ... i j', x, x) * 0.5 * (dim ** -0.5)
+    x2 = einsum('... i, ... j -> ... i j', x, x) * (0.5 ** 0.5)
 
     # concat - dimension D now becomes (1 + D + D ^2)
     # in paper, they had to heavily reduce the attention head dimension to make this work
