@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
   name = 'taylor-series-linear-attention',
   packages = find_packages(exclude=[]),
-  version = '0.0.6',
+  version = '0.0.7',
   license='MIT',
   description = 'Taylor Series Linear Attention',
   author = 'Phil Wang',
@@ -17,7 +17,8 @@ setup(
   ],
   install_requires=[
     'einops>=0.7.0',
-    'torch>=2.0'
+    'torch>=2.0',
+    'torchtyping'
   ],
   classifiers=[
     'Development Status :: 4 - Beta',

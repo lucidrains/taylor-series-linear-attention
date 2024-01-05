@@ -1,10 +1,13 @@
 import torch
 import torch.nn.functional as F
 from torch.nn import Module, ModuleList
-from torch import nn, einsum
+from torch import nn, einsum, Tensor
 
 from einops import rearrange, pack, unpack
 from einops.layers.torch import Rearrange
+
+from typing import Optional
+from torchtyping import TensorType
 
 # functions
 
@@ -18,7 +21,7 @@ def default(v, d):
 # https://arxiv.org/abs/2209.04881
 # in a linear attention formulation
 
-def second_taylor_expansion(x):
+def second_taylor_expansion(x: Tensor):
     dtype, device, dim = x.dtype, x.device, x.shape[-1]
 
     x, ps = pack([x], '* d')
@@ -75,10 +78,10 @@ class TaylorSeriesLinearAttn(Module):
 
     def forward(
         self,
-        x,
-        mask = None,
-        context = None,
-        eps = 1e-5
+        x:          TensorType['batch', 'seq', 'dim'],
+        mask:       Optional[TensorType['batch', 'seq']] = None,
+        context:    Optional[TensorType['batch', 'target_seq', 'dim']] = None,
+        eps: float = 1e-5
     ):
         """
         einops
