@@ -9,6 +9,8 @@ from einops.layers.torch import Rearrange
 from typing import Optional
 from torchtyping import TensorType
 
+from rotary_embedding_torch import RotaryEmbedding
+
 # functions
 
 def exists(v):
@@ -50,7 +52,8 @@ class TaylorSeriesLinearAttn(Module):
         *,
         dim_head = 16,
         heads = 8,
-        one_headed_kv = False
+        one_headed_kv = False,
+        rotary_emb = False
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -58,6 +61,8 @@ class TaylorSeriesLinearAttn(Module):
 
         kv_heads = heads if not one_headed_kv else 1
         dim_kv_inner = dim_head * (heads if not one_headed_kv else 1)
+
+        self.rotary_emb = RotaryEmbedding(dim_head) if rotary_emb else None
 
         self.one_headed_kv = one_headed_kv
 
@@ -92,9 +97,16 @@ class TaylorSeriesLinearAttn(Module):
         n - source query sequence length
         m - target key / value sequence length
         """
+        is_cross_attn = exists(context)
+        assert not (exists(self.rotary_emb) and is_cross_attn), 'rotary embedding does not work with cross attention'
 
         q = self.to_q(x)
         k, v = self.to_kv(default(context, x))
+
+        # maybe rotary
+
+        if exists(self.rotary_emb):
+            q, k = map(self.rotary_emb.rotate_queries_or_keys, (q, k))
 
         # scale
 
