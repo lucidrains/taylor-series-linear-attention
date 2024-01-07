@@ -1,1 +1,4 @@
-from taylor_series_linear_attention.attention import TaylorSeriesLinearAttn
+from taylor_series_linear_attention.attention import (
+  TaylorSeriesLinearAttn,
+  ChannelFirstTaylorSeriesLinearAttn
+)

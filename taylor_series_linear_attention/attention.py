@@ -83,9 +83,9 @@ class TaylorSeriesLinearAttn(Module):
 
     def forward(
         self,
-        x:          TensorType['batch', 'seq', 'dim'],
-        mask:       Optional[TensorType['batch', 'seq']] = None,
-        context:    Optional[TensorType['batch', 'target_seq', 'dim']] = None,
+        x:          TensorType['batch', 'seq', 'dim', float],
+        mask:       Optional[TensorType['batch', 'seq', bool]] = None,
+        context:    Optional[TensorType['batch', 'target_seq', 'dim', float]] = None,
         eps: float = 1e-5
     ):
         """
@@ -140,3 +140,26 @@ class TaylorSeriesLinearAttn(Module):
         # combine heads
 
         return self.to_out(out)
+
+# adapted for images and video
+
+class ChannelFirstTaylorSeriesLinearAttn(Module):
+    def __init__(
+        self,
+        *args,
+        **kwargs
+    ):
+        super().__init__()
+        self.attn = TaylorSeriesLinearAttn(*args, **kwargs)
+
+    def forward(
+        self,
+        x: Tensor
+    ):
+        x = rearrange(x, 'b c ... -> b ... c')
+        x, ps = pack([x], 'b * c')
+
+        out = self.attn(x)
+
+        out, = unpack(out, ps, 'b * c')
+        return rearrange(out, 'b ... c -> b c ...')

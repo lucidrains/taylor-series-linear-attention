@@ -81,11 +81,11 @@ assert x.shape == out.shape
 
 ```bibtex
 @article{Shazeer2019FastTD,
-    title   = {Fast Transformer Decoding: One Write-Head is All You Need},
-    author  = {Noam M. Shazeer},
-    journal = {ArXiv},
-    year    = {2019},
-    volume  = {abs/1911.02150}
+  title   = {Fast Transformer Decoding: One Write-Head is All You Need},
+  author  = {Noam M. Shazeer},
+  journal = {ArXiv},
+  year    = {2019},
+  volume  = {abs/1911.02150}
 }
 ```
 
