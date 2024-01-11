@@ -59,6 +59,7 @@ class TaylorSeriesLinearAttn(Module):
         super().__init__()
         self.scale = dim_head ** -0.5
         dim_inner = dim_head * heads
+        self.dim_hidden = dim_inner
 
         kv_heads = heads if not one_headed_kv else 1
         dim_kv_inner = dim_head * (heads if not one_headed_kv else 1)
