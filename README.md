@@ -6,6 +6,8 @@ This repository will only offer non-causal self attention as well as cross atten
 
 Be aware that in linear attention, the quadratic is pushed to the attention head dimension. With the second taylor expansion, this becomes O(D^3), so more research needed.
 
+Update: It works! Strongest formulation of linear attention I've come across in the literature
+
 ## Appreciation
 
 - <a href="https://a16z.com/supporting-the-open-source-ai-community/">A16Z Open Source AI Grant Program</a> and <a href="https://huggingface.co/">🤗 Huggingface</a> for the generous sponsorships, as well as my other sponsors, for affording me the independence to open source current artificial intelligence research
