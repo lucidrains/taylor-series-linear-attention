@@ -11,6 +11,8 @@ from torchtyping import TensorType
 
 from rotary_embedding_torch import RotaryEmbedding
 
+import importlib
+
 # functions
 
 def exists(v):
@@ -52,6 +54,7 @@ class TaylorSeriesLinearAttn(Module):
         *,
         dim_head = 16,
         heads = 8,
+        causal = False,
         one_headed_kv = False,
         rotary_emb = False,
         combine_heads = True
@@ -59,7 +62,20 @@ class TaylorSeriesLinearAttn(Module):
         super().__init__()
         self.scale = dim_head ** -0.5
         dim_inner = dim_head * heads
+
+        self.heads = heads
         self.dim_hidden = dim_inner
+
+        self.causal = causal
+        self.causal_linear_attn_fn = None
+
+        if causal:
+            if not exists(importlib.util.find_spec('fast_transformers')):
+                print('pytorch-fast-transformers must be installed. `pip install pytorch-fast-transformers` first')
+                exit()
+
+            from fast_transformers.causal_product import CausalDotProduct
+            self.causal_linear_attn_fn = CausalDotProduct.apply
 
         kv_heads = heads if not one_headed_kv else 1
         dim_kv_inner = dim_head * (heads if not one_headed_kv else 1)
@@ -119,26 +135,33 @@ class TaylorSeriesLinearAttn(Module):
 
         q, k = map(second_taylor_expansion, (q, k))
 
-        # masking
-
-        if exists(mask):
-            mask = rearrange(mask, 'b n -> b 1 n 1')
-            k = k.masked_fill(~mask, 0.)
-            v = v.masked_fill(~mask, 0.)
-
         # linear attention
 
-        if self.one_headed_kv:
-            k, v = map(lambda t: rearrange(t, 'b 1 n d -> b n d'), (k, v))
+        if self.causal:
+            assert not exists(mask), 'masking does not make sense for autoregressive linear attention'
+            assert not is_cross_attn, 'causal does not make sense with cross attention'
 
-            kv = einsum('b n d, b n e -> b d e', k, v)
-            qk_inv = 1. / einsum('b h n d, b m d -> b h n', q, k).clamp(min = eps)
-            out = einsum('b h n d, b d e, b h n -> b h n e', q, kv, qk_inv)
+            if self.one_headed_kv:
+                k, v = map(lambda t: repeat(t, 'b 1 n d -> b h n d', h = self.heads))
 
+            out = self.causal_linear_attn_fn(q, k, v)
         else:
-            kv = einsum('b h n d, b h n e -> b h d e', k, v)
-            qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
-            out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
+            if exists(mask):
+                mask = rearrange(mask, 'b n -> b 1 n 1')
+                k = k.masked_fill(~mask, 0.)
+                v = v.masked_fill(~mask, 0.)
+
+            if self.one_headed_kv:
+                k, v = map(lambda t: rearrange(t, 'b 1 n d -> b n d'), (k, v))
+
+                kv = einsum('b n d, b n e -> b d e', k, v)
+                qk_inv = 1. / einsum('b h n d, b m d -> b h n', q, k).clamp(min = eps)
+                out = einsum('b h n d, b d e, b h n -> b h n e', q, kv, qk_inv)
+
+            else:
+                kv = einsum('b h n d, b h n e -> b h d e', k, v)
+                qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
+                out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
 
         # merge heads
 

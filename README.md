@@ -2,7 +2,7 @@
 
 Explorations into the Taylor Series Linear Attention proposed in the paper <a href="https://arxiv.org/abs/2312.04927">Zoology: Measuring and Improving Recall in Efficient Language Models</a>
 
-This repository will only offer non-causal self attention as well as cross attention. Autoregressive formulation requires a complicated CUDA kernel.
+This repository will offer full self attention, cross attention, and autoregressive via CUDA kernel from `pytorch-fast-transformers`.
 
 Be aware that in linear attention, the quadratic is pushed to the attention head dimension. With the second taylor expansion, this becomes O(D^3), so more research needed.
 
@@ -56,6 +56,27 @@ context = torch.randn(1, 65536, 512)
 context_mask = torch.ones((1, 65536)).bool()
 
 out = attn(x, context = context, mask = context_mask)
+
+assert x.shape == out.shape
+```
+
+For autoregressive, first `pip install pytorch-fast-transformers`. Then set `causal = True`
+
+```python
+import torch
+from taylor_series_linear_attention import TaylorSeriesLinearAttn
+
+attn = TaylorSeriesLinearAttn(
+  dim = 512,
+  dim_head = 16,
+  heads = 16,
+  causal = True,        # set this to True
+  rotary_emb = True     # rotary embeddings
+)
+
+x = torch.randn(1, 8192, 512)
+
+out = attn(x)
 
 assert x.shape == out.shape
 ```
