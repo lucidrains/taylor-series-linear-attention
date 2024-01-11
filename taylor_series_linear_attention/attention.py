@@ -53,7 +53,8 @@ class TaylorSeriesLinearAttn(Module):
         dim_head = 16,
         heads = 8,
         one_headed_kv = False,
-        rotary_emb = False
+        rotary_emb = False,
+        combine_heads = True
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -76,10 +77,11 @@ class TaylorSeriesLinearAttn(Module):
             Rearrange('b n (kv h d) -> kv b h n d', kv = 2, h = kv_heads)
         )
 
-        self.to_out = nn.Sequential(
-            Rearrange('b h n d -> b n (h d)'),
-            nn.Linear(dim_inner, dim, bias = False)
-        )
+        self.merge_heads = Rearrange('b h n d -> b n (h d)')
+        self.to_out = nn.Identity()
+
+        if combine_heads:
+            self.to_out = nn.Linear(dim_inner, dim, bias = False)
 
     def forward(
         self,
@@ -137,7 +139,11 @@ class TaylorSeriesLinearAttn(Module):
             qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
             out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
 
-        # combine heads
+        # merge heads
+
+        out = self.merge_heads(out)
+
+        # maybe combine heads
 
         return self.to_out(out)
 
