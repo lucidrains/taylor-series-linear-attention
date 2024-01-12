@@ -141,10 +141,16 @@ class TaylorSeriesLinearAttn(Module):
             assert not exists(mask), 'masking does not make sense for autoregressive linear attention'
             assert not is_cross_attn, 'causal does not make sense with cross attention'
 
-            if self.one_headed_kv:
-                k, v = map(lambda t: repeat(t, 'b 1 n d -> b h n d', h = self.heads))
+            k_cumsum = k.cumsum(dim = -2)
 
-            out = self.causal_linear_attn_fn(q, k, v)
+            if self.one_headed_kv:
+                k, k_cumsum, v = map(lambda t: repeat(t, 'b 1 n d -> b h n d', h = self.heads), (k, k_cumsum, v))
+
+            num = self.causal_linear_attn_fn(q, k, v)
+            den = einsum('... n d, ... n d -> ... n', q, k_cumsum)
+            den = rearrange(den, '... -> ... 1')
+
+            out = num / den.clamp(min = eps)
         else:
             if exists(mask):
                 mask = rearrange(mask, 'b n -> b 1 n 1')
