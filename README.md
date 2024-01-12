@@ -15,7 +15,7 @@ Update: It works! Strongest formulation of linear attention I've come across in 
 ## Install
 
 ```bash
-$ pip install taylor-series-lienar-attention
+$ pip install taylor-series-linear-attention
 ```
 
 ## Usage
