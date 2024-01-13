@@ -57,7 +57,8 @@ class TaylorSeriesLinearAttn(Module):
         causal = False,
         one_headed_kv = False,
         rotary_emb = False,
-        combine_heads = True
+        combine_heads = True,
+        gate_value_heads = False
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -93,6 +94,12 @@ class TaylorSeriesLinearAttn(Module):
             nn.Linear(dim, dim_kv_inner * 2, bias = False),
             Rearrange('b n (kv h d) -> kv b h n d', kv = 2, h = kv_heads)
         )
+
+        self.to_v_gates = nn.Sequential(
+            nn.Linear(dim, heads, bias = False),
+            nn.Sigmoid(),
+            Rearrange('b n h -> b h n 1')
+        ) if gate_value_heads else None
 
         self.merge_heads = Rearrange('b h n d -> b n (h d)')
         self.to_out = nn.Identity()
@@ -168,6 +175,11 @@ class TaylorSeriesLinearAttn(Module):
                 kv = einsum('b h n d, b h n e -> b h d e', k, v)
                 qk_inv = 1. / einsum('b h n d, b h m d -> b h n', q, k).clamp(min = eps)
                 out = einsum('b h n d, b h d e, b h n -> b h n e', q, kv, qk_inv)
+
+        # gate value heads
+
+        if exists(self.to_v_gates):
+            out = out * self.to_v_gates(x)
 
         # merge heads
 
