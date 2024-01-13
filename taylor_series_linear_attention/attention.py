@@ -21,6 +21,22 @@ def exists(v):
 def default(v, d):
     return v if exists(v) else d
 
+def shift(t):
+    t, t_shift = t.chunk(2, dim = -1)
+    t_shift = F.pad(t_shift, (0, 0, 1, -1), value = 0.)
+    return torch.cat((t, t_shift), dim = -1)
+
+# prenorm
+
+class RMSNorm(Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.scale = dim ** 0.5
+        self.gamma = nn.Parameter(torch.ones(dim))
+
+    def forward(self, x):
+        return self.gamma * F.normalize(x, dim = -1) * self.scale
+
 # they use 2nd taylor expansion for exp(x)
 # https://arxiv.org/abs/2209.04881
 # in a linear attention formulation
@@ -58,11 +74,16 @@ class TaylorSeriesLinearAttn(Module):
         one_headed_kv = False,
         rotary_emb = False,
         combine_heads = True,
-        gate_value_heads = False
+        gate_value_heads = False,
+        prenorm = False,
+        shift_tokens = False
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
         dim_inner = dim_head * heads
+
+        self.shift_tokens = shift_tokens
+        self.norm = RMSNorm(dim) if prenorm else nn.Identity()
 
         self.heads = heads
         self.dim_hidden = dim_inner
@@ -125,6 +146,11 @@ class TaylorSeriesLinearAttn(Module):
         """
         is_cross_attn = exists(context)
         assert not (exists(self.rotary_emb) and is_cross_attn), 'rotary embedding does not work with cross attention'
+
+        if self.shift_tokens:
+            x = shift(x)
+
+        x = self.norm(x)
 
         q = self.to_q(x)
         k, v = self.to_kv(default(context, x))

@@ -112,4 +112,14 @@ assert x.shape == out.shape
 }
 ```
 
+```bibtex
+@inproceedings{Peng2023RWKVRR,
+  title   = {RWKV: Reinventing RNNs for the Transformer Era},
+  author  = {Bo Peng and Eric Alcaide and Quentin G. Anthony and Alon Albalak and Samuel Arcadinho and Stella Biderman and Huanqi Cao and Xin Cheng and Michael Chung and Matteo Grella and G Kranthikiran and Xuming He and Haowen Hou and Przemyslaw Kazienko and Jan Kocoń and Jiaming Kong and Bartlomiej Koptyra and Hayden Lau and Krishna Sri Ipsit Mantri and Ferdinand Mom and Atsushi Saito and Xiangru Tang and Bolun Wang and Johan Sokrates Wind and Stansilaw Wozniak and Ruichong Zhang and Zhenyuan Zhang and Qihang Zhao and Peng Zhou and Jian Zhu and Rui Zhu},
+  booktitle = {Conference on Empirical Methods in Natural Language Processing},
+  year    = {2023},
+  url     = {https://api.semanticscholar.org/CorpusID:258832459}
+}
+```
+
 *The greatest shortcoming of the human race is man’s inability to understand the exponential function.* - Albert A. Bartlett
