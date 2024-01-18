@@ -126,4 +126,14 @@ assert x.shape == out.shape
 }
 ```
 
+```bibtex
+@inproceedings{Katharopoulos2020TransformersAR,
+  title   = {Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention},
+  author  = {Angelos Katharopoulos and Apoorv Vyas and Nikolaos Pappas and Franccois Fleuret},
+  booktitle = {International Conference on Machine Learning},
+  year    = {2020},
+  url     = {https://api.semanticscholar.org/CorpusID:220250819}
+}
+```
+
 *The greatest shortcoming of the human race is man’s inability to understand the exponential function.* - Albert A. Bartlett
