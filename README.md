@@ -83,7 +83,7 @@ assert x.shape == out.shape
 
 ## Todo
 
-- [ ] take care of caching for causal variant
+- [x] take care of caching for causal variant
 
 ## Citations
 
