@@ -17,6 +17,7 @@ setup(
   ],
   install_requires=[
     'einops>=0.7.0',
+    'einx',
     'rotary-embedding-torch>=0.5.3',
     'torch>=2.0',
     'torchtyping'

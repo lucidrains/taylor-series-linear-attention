@@ -1,3 +1,7 @@
+<img src="./zoology.png" width="450px"></img>
+
+<small><a href="https://hazyresearch.stanford.edu/blog/2023-12-11-zoology2-based">blog post</a></small>
+
 ## Taylor Series Linear Attention
 
 Explorations into the Taylor Series Linear Attention proposed in the paper <a href="https://arxiv.org/abs/2312.04927">Zoology: Measuring and Improving Recall in Efficient Language Models</a>
