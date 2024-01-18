@@ -1,4 +1,6 @@
+import importlib
 from functools import partial
+from collections import namedtuple
 
 import torch
 import torch.nn.functional as F
@@ -13,7 +15,14 @@ from torchtyping import TensorType
 
 from rotary_embedding_torch import RotaryEmbedding
 
-import importlib
+# constants
+
+Cache = namedtuple('Cache', [
+    'seq_len',
+    'last_token',
+    'kv_cumsum',
+    'k_cumsum'
+])
 
 # functions
 
@@ -136,7 +145,7 @@ class TaylorSeriesLinearAttn(Module):
         mask:       Optional[TensorType['batch', 'seq', bool]] = None,
         context:    Optional[TensorType['batch', 'target_seq', 'dim', float]] = None,
         eps: float = 1e-5,
-        cache = None,
+        cache: Optional[Cache] = None,
         return_cache = False
     ):
         """
@@ -155,8 +164,7 @@ class TaylorSeriesLinearAttn(Module):
 
         if self.shift_tokens:
             if exists(cache):
-                _, last_token, *_ = cache
-                x, ps = pack([last_token, x], 'b * d')
+                x, ps = pack([cache.last_token, x], 'b * d')
 
             x = shift(x)
 
@@ -178,8 +186,7 @@ class TaylorSeriesLinearAttn(Module):
             rotate_fn = self.rotary_emb.rotate_queries_or_keys
 
             if exists(cache):
-                cache_length, *_ = cache
-                rotate_fn = partial(rotate_fn, offset = cache_length)
+                rotate_fn = partial(rotate_fn, offset = cache.seq_len)
 
             q, k = map(rotate_fn, (q, k))
 
@@ -216,7 +223,7 @@ class TaylorSeriesLinearAttn(Module):
                 out = num / den.clamp(min = eps)
 
                 if return_cache:
-                    new_cache = (old_seq_len + 1, orig_input, kv_cumsum, k_cumsum)
+                    new_cache = Cache(old_seq_len + 1, orig_input, kv_cumsum, k_cumsum)
 
             else:
 
@@ -231,7 +238,7 @@ class TaylorSeriesLinearAttn(Module):
                 if return_cache:
                     new_kv_cache = einsum('b h n d, b h n e -> b h d e', k, v)
                     new_k_cumsum_cache = k_cumsum[..., -1:, :]
-                    new_cache = (seq_len, orig_input[:, -1:], new_kv_cache, new_k_cumsum_cache)
+                    new_cache = Cache(seq_len, orig_input[:, -1:], new_kv_cache, new_k_cumsum_cache)
 
         else:
             assert not return_cache, 'cache is only needed for autoregressive'
