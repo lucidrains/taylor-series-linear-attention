@@ -1,3 +1,5 @@
+from functools import partial
+
 import torch
 import torch.nn.functional as F
 from torch.nn import Module, ModuleList
@@ -133,7 +135,9 @@ class TaylorSeriesLinearAttn(Module):
         x:          TensorType['batch', 'seq', 'dim', float],
         mask:       Optional[TensorType['batch', 'seq', bool]] = None,
         context:    Optional[TensorType['batch', 'target_seq', 'dim', float]] = None,
-        eps: float = 1e-5
+        eps: float = 1e-5,
+        cache = None,
+        return_cache = False
     ):
         """
         einops
@@ -144,21 +148,40 @@ class TaylorSeriesLinearAttn(Module):
         n - source query sequence length
         m - target key / value sequence length
         """
-        is_cross_attn = exists(context)
+        orig_input, seq_len, is_cross_attn = x, x.shape[-2], exists(context)
         assert not (exists(self.rotary_emb) and is_cross_attn), 'rotary embedding does not work with cross attention'
 
+        # token shift from rwkv
+
         if self.shift_tokens:
+            if exists(cache):
+                _, last_token, *_ = cache
+                x, ps = pack([last_token, x], 'b * d')
+
             x = shift(x)
 
-        x = self.norm(x)
+            if exists(cache):
+                _, x = unpack(x, ps, 'b * d')
 
-        q = self.to_q(x)
-        k, v = self.to_kv(default(context, x))
+        # pre rmsnorm
+
+        normed = self.norm(x)
+
+        # queries, keys, values
+
+        q = self.to_q(normed)
+        k, v = self.to_kv(default(context, normed))
 
         # maybe rotary
 
         if exists(self.rotary_emb):
-            q, k = map(self.rotary_emb.rotate_queries_or_keys, (q, k))
+            rotate_fn = self.rotary_emb.rotate_queries_or_keys
+
+            if exists(cache):
+                cache_length, *_ = cache
+                rotate_fn = partial(rotate_fn, offset = cache_length)
+
+            q, k = map(rotate_fn, (q, k))
 
         # scale
 
@@ -174,17 +197,45 @@ class TaylorSeriesLinearAttn(Module):
             assert not exists(mask), 'masking does not make sense for autoregressive linear attention'
             assert not is_cross_attn, 'causal does not make sense with cross attention'
 
-            k_cumsum = k.cumsum(dim = -2)
-
             if self.one_headed_kv:
-                k, k_cumsum, v = map(lambda t: repeat(t, 'b 1 n d -> b h n d', h = self.heads), (k, k_cumsum, v))
+                k, v = map(lambda t: repeat(t, 'b 1 n d -> b h n d', h = self.heads), (k, v))
 
-            num = self.causal_linear_attn_fn(q, k, v)
-            den = einsum('... n d, ... n d -> ... n', q, k_cumsum)
-            den = rearrange(den, '... -> ... 1')
+            if exists(cache):
+                assert seq_len == 1
+                old_seq_len, _, kv_cumsum_cache, k_cumsum_cache = cache
 
-            out = num / den.clamp(min = eps)
+                kv = einsum('b h n d, b h n e -> b h d e', k, v)
+
+                kv_cumsum = kv + kv_cumsum_cache
+                k_cumsum = k + k_cumsum_cache
+
+                num = einsum('b h n d, b h d e -> b h n e', q, kv_cumsum)
+                den = einsum('... n d, ... n d -> ... n', q, k_cumsum)
+                den = rearrange(den, '... -> ... 1')
+
+                out = num / den.clamp(min = eps)
+
+                if return_cache:
+                    new_cache = (old_seq_len + 1, orig_input, kv_cumsum, k_cumsum)
+
+            else:
+
+                num = self.causal_linear_attn_fn(q, k, v)
+
+                k_cumsum = k.cumsum(dim = -2)
+                den = einsum('... n d, ... n d -> ... n', q, k_cumsum)
+                den = rearrange(den, '... -> ... 1')
+
+                out = num / den.clamp(min = eps)
+
+                if return_cache:
+                    new_kv_cache = einsum('b h n d, b h n e -> b h d e', k, v)
+                    new_k_cumsum_cache = k_cumsum[..., -1:, :]
+                    new_cache = (seq_len, orig_input[:, -1:], new_kv_cache, new_k_cumsum_cache)
+
         else:
+            assert not return_cache, 'cache is only needed for autoregressive'
+
             if exists(mask):
                 mask = rearrange(mask, 'b n -> b 1 n 1')
                 k = k.masked_fill(~mask, 0.)
@@ -213,7 +264,12 @@ class TaylorSeriesLinearAttn(Module):
 
         # maybe combine heads
 
-        return self.to_out(out)
+        out = self.to_out(out)
+
+        if not return_cache:
+            return out
+
+        return out, new_cache
 
 # adapted for images and video
 
