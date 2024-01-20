@@ -87,7 +87,8 @@ class TaylorSeriesLinearAttn(Module):
         combine_heads = True,
         gate_value_heads = False,
         prenorm = False,
-        shift_tokens = False
+        shift_tokens = False,
+        dropout = 0.
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -137,7 +138,10 @@ class TaylorSeriesLinearAttn(Module):
         self.to_out = nn.Identity()
 
         if combine_heads:
-            self.to_out = nn.Linear(dim_inner, dim, bias = False)
+            self.to_out = nn.Sequential(
+                nn.Linear(dim_inner, dim, bias = False),
+                nn.Dropout(dropout)
+            )
 
     def forward(
         self,

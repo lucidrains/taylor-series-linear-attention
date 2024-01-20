@@ -90,7 +90,7 @@ class Transformer(Module):
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 nn.LayerNorm(dim),
-                TaylorSeriesLinearAttn(dim, heads = heads, dim_head = dim_head),
+                TaylorSeriesLinearAttn(dim, heads = heads, dim_head = dim_head, dropout = dropout),
                 nn.LayerNorm(dim),
                 FeedForward(dim, ff_mult, dropout = dropout)
             ]))
