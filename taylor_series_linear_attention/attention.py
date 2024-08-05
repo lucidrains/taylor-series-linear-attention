@@ -1,3 +1,4 @@
+from __future__ import annotations
 import importlib
 from functools import partial
 from collections import namedtuple
@@ -10,8 +11,7 @@ from torch import nn, einsum, Tensor
 from einops import rearrange, pack, unpack
 from einops.layers.torch import Rearrange
 
-from typing import Optional
-from torchtyping import TensorType
+from taylor_series_linear_attention.tensor_typing import Float, Int, Bool
 
 from rotary_embedding_torch import RotaryEmbedding
 
@@ -145,11 +145,11 @@ class TaylorSeriesLinearAttn(Module):
 
     def forward(
         self,
-        x:          TensorType['batch', 'seq', 'dim', float],
-        mask:       Optional[TensorType['batch', 'seq', bool]] = None,
-        context:    Optional[TensorType['batch', 'target_seq', 'dim', float]] = None,
+        x:          Float['batch seq dim'],
+        mask:       Bool['batch seq'] | None = None,
+        context:    Float['batch target_seq dim'] | None = None,
         eps: float = 1e-5,
-        cache: Optional[Cache] = None,
+        cache: Cache | None = None,
         return_cache = False
     ):
         """
