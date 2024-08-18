@@ -1,5 +1,6 @@
 from __future__ import annotations
 import importlib
+from math import sqrt
 from functools import partial
 from collections import namedtuple
 
@@ -52,7 +53,11 @@ class RMSNorm(Module):
 # https://arxiv.org/abs/2209.04881
 # in a linear attention formulation
 
-def second_taylor_expansion(x: Tensor):
+def second_taylor_expansion(
+    x: Tensor,
+    remove_even_power_dups = False
+):
+
     dtype, device, dim = x.dtype, x.device, x.shape[-1]
 
     x, ps = pack([x], '* d')
@@ -65,10 +70,22 @@ def second_taylor_expansion(x: Tensor):
     x1 = x
     x2 = einsum('... i, ... j -> ... i j', x, x) * (0.5 ** 0.5)
 
+    # Buckman et al. points out in https://manifestai.com/articles/symmetric-power-transformers/
+    # that even powered tensor products are symmetric, and thus size can be cut down even more
+    # for D^2 it would be ~ half
+
+    if remove_even_power_dups:
+        x2_diagonal = torch.diagonal(x2, dim1 = -2, dim2 = -1)
+
+        mask = torch.ones(x2.shape[-2:], dtype = torch.bool).triu(1)
+        x2_upper_triangle = x2[:, mask] * sqrt(2)
+
+        x2 = torch.cat((x2_diagonal, x2_upper_triangle), dim = -1)
+
     # concat - dimension D now becomes (1 + D + D ^2)
     # in paper, they had to heavily reduce the attention head dimension to make this work
 
-    out, _ = pack([x0, x1, x2], 'b *')
+    out, _ = pack((x0, x1, x2), 'b *')
     out, = unpack(out, ps, '* d')
     return out
 
@@ -88,7 +105,8 @@ class TaylorSeriesLinearAttn(Module):
         gate_value_heads = False,
         prenorm = False,
         shift_tokens = False,
-        dropout = 0.
+        dropout = 0.,
+        remove_even_power_dups = False
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -99,6 +117,8 @@ class TaylorSeriesLinearAttn(Module):
 
         self.heads = heads
         self.dim_hidden = dim_inner
+
+        self.taylor_expand_fn = partial(second_taylor_expansion, remove_even_power_dups = remove_even_power_dups)
 
         self.causal = causal
         self.causal_linear_attn_fn = None
@@ -200,7 +220,7 @@ class TaylorSeriesLinearAttn(Module):
 
         # 2nd taylor expansion for exp(qk)
 
-        q, k = map(second_taylor_expansion, (q, k))
+        q, k = map(self.taylor_expand_fn, (q, k))
 
         # linear attention
 

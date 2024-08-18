@@ -140,4 +140,14 @@ assert x.shape == out.shape
 }
 ```
 
+```bibtex
+@misc{buckman2024,
+  author    = {Buckman, Jacob and Gelada, Carles and Zhang, Sean},
+  publisher = {Manifest AI},
+  title     = {Symmetric {Power} {Transformers}},
+  date      = {2024-08-15},
+  langid    = {en}
+}
+```
+
 *The greatest shortcoming of the human race is man’s inability to understand the exponential function.* - Albert A. Bartlett
