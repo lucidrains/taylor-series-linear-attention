@@ -1,0 +1,15 @@
+# only the essentials go into the sdist - the root scripts
+# (train_function_composition.py, sweep_taylor_depth.py, etc.) and tests
+# are for local reproduction only, and are not packaged
+
+include README.md
+include LICENSE
+include pyproject.toml
+
+prune build
+prune dist
+prune tests
+prune taylor_series_linear_attention.egg-info
+
+global-exclude *.py[cod]
+global-exclude __pycache__/*

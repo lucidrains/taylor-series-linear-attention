@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch.nn import Module, ModuleList
 from torch import nn, einsum, Tensor
 
-from einops import rearrange, pack, unpack
+from einops import rearrange, pack, unpack, repeat
 from einops.layers.torch import Rearrange
 
 from taylor_series_linear_attention.tensor_typing import Float, Int, Bool

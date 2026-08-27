@@ -85,6 +85,38 @@ out = attn(x)
 assert x.shape == out.shape
 ```
 
+## Taylor Series Poly Attention
+
+Higher-order (order-2) linear attention from <a href="https://arxiv.org/abs/2602.02422">Poly-Attention</a>, with the taylor series feature map on both passes
+
+```python
+import torch
+from taylor_series_linear_attention import TaylorSeriesPolyAttention
+
+attn = TaylorSeriesPolyAttention(
+  dim = 512,
+  heads = 16,
+  dim_head = 32,
+  remove_even_power_dups = False,
+  prenorm = True,
+  multiply_root_value = True,
+  use_root_value_as_attn_gate = True
+)
+
+x = torch.randn(1, 1024, 512)
+mask = torch.ones((1, 1024)).bool()
+
+out = attn(x, mask = mask)
+
+assert x.shape == out.shape
+```
+
+The function composition demonstration is included in the project root, runnable as
+
+```bash
+$ python train_function_composition.py
+```
+
 ## Todo
 
 - [x] take care of caching for causal variant
@@ -97,6 +129,15 @@ assert x.shape == out.shape
   author  = {Simran Arora and Sabri Eyuboglu and Aman Timalsina and Isys Johnson and Michael Poli and James Zou and Atri Rudra and Christopher R'e},
   year    = {2023},
   url     = {https://api.semanticscholar.org/CorpusID:266149332}
+}
+```
+
+```bibtex
+@inproceedings{chakrabarti2026poly,
+    title   = {Poly-attention: a general scheme for higher-order self-attention},
+    author  = {Chakrabarti, Sayak and Pitassi, Toniann and Alman, Josh},
+    booktitle = {International Conference on Learning Representations (ICLR)},
+    year    = {2026}
 }
 ```
 

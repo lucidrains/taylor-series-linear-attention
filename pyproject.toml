@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taylor-series-linear-attention"
+version = "0.2.0"
+description = "Taylor Series Linear Attention"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+  { name = "Phil Wang", email = "lucidrains@gmail.com" }
+]
+keywords = [
+  "artificial intelligence",
+  "deep learning",
+  "attention mechanism"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Programming Language :: Python :: 3"
+]
+dependencies = [
+  "einops>=0.7.0",
+  "jaxtyping",
+  "rotary-embedding-torch>=0.5.3",
+  "torch>=2.0"
+]
+
+[project.urls]
+Repository = "https://github.com/lucidrains/taylor-series-linear-attention"
+
+[tool.setuptools]
+packages = ["taylor_series_linear_attention"]
+include-package-data = false
